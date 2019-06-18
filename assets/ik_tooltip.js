@@ -36,15 +36,25 @@
 			$tooltip = $('<span/>') // create tooltip
 				.text(tip)
 				.addClass('ik_tooltip')
+				//1
 				.attr({
 					'id': id,
+					'role': 'tooltip',		//assign tooltip role
+					'aria-hidden': 'true',	//hide it from the screen reader to prevent it from being read twice
+					'aria-live': 'polite'	//make it a live region - tell SR this is dynamic content (is announced as such by SR)
 				});
 			
 			$elem
+				//2	
+				.attr({
+						'tabindex':0	//add tab order
+					})
 				.css('position', 'relative')
 				.removeAttr('title') // remove title to prevent it from being read
 				.after($tooltip)
-				.on('mouseover', function(event) {
+				//.on('mouseover', function(event) {
+				//3 - add focus
+				.on('mouseover focus', function(event){
 					
 					var y, x;
 					
@@ -62,6 +72,10 @@
 					}
 					
 					$tooltip // position and show tooltip
+						//4 - show - tell SR
+						.attr({
+							'aria-hidden': 'false'
+						})
 						.css({
 							'top': y, 
 							'left': x
@@ -73,10 +87,34 @@
 					if (!$(event.currentTarget).is(':focus') ) { // hide tooltip if current element is not focused
 						
 						$tooltip
+							//5 - remove tooltip
+							.attr({
+								'aria-hidden':'true'
+							})
 							.removeClass('visible mouseover');					
 					}
 										
 				})
+				//6 - keyboard equivalent to mouseout
+				.on('blur', function(event){
+					if (!$tooltip.hasClass('mouseover') ) { // hide tooltip if mouse is not over the current element               
+						$tooltip
+							.attr({
+						    	'aria-hidden': 'true'
+						    })
+						    .removeClass('visible');       
+						}	
+				})
+				//7 - and considersations for the 'esc' key
+				.on('keyup', function(event) {         
+				    if(event.keyCode == ik_utils.keys.esc) { // hide when escape key is pressed
+				        $tooltip
+				            .attr({
+				                'aria-hidden': 'true'
+				            })
+				            .removeClass('visible');
+				    }              
+				});
 		}
 	};
 	
