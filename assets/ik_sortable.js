@@ -1,7 +1,10 @@
 ;(function ( $, window, document, undefined ) {
  
 var pluginName = "ik_sortable",
-	defaults = {};
+	modifier = navigator.platform.indexOf('Mac') > -1 ? 'Command' : 'Control', // 1
+	defaults = { //2
+	    'instructions': 'Use arrow keys to select a list item,  ' + modifier + ' + arrow keys to move it to a new position.'
+	};
 	 
 	function Plugin( element, options ) {
 		
@@ -20,9 +23,32 @@ var pluginName = "ik_sortable",
 		plugin = this;
 		id = 'sortable_' + $('.ik_sortable').length;
 		$elem = this.element.attr({
-			'id': id
+			'id': id,
+			'role': 'list',	//3
+		    'tabindex': 0, //4
+		    'aria-labelledby': id + '_instructions' //5
 		})
 		.wrap('<div class="ik_sortable"></div>').before(plugin.temp);
+		
+		
+		
+		
+		
+		//6 - Instructions <div>
+		 $('<div/>') // add div element to be used with aria-describedby attribute of the menu
+		    .text(plugin.options.instructions) // get instruction text from plugin options
+		    .addClass('ik_readersonly') // hide element from visual display
+		    .attr({
+		    'id': id + '_instructions',
+		    'aria-hidden': 'true'  // hide element from screen readers to prevent it from being read twice
+		})
+		    .appendTo($elem);
+		
+		 
+		 
+		
+		
+		
 			
 		total = $elem.children('li').length;
 			
@@ -30,7 +56,10 @@ var pluginName = "ik_sortable",
 			
 			$(el).attr({
 				'draggable': true,
-				'id': id + '_' + i
+				'id': id + '_' + i, //7
+			    'role': 'listitem', //8
+			    'aria-label': $(el).text() + ' ' + (i + 1) + ' of ' + total + ' movable', //9
+			    'tabindex': i > 0 ? -1 : 0 //10
 			});
 		})
 		.on('dragstart', {'plugin': plugin}, plugin.onDragStart)
@@ -38,8 +67,11 @@ var pluginName = "ik_sortable",
 		.on('dragend', {'plugin': plugin}, plugin.onDragEnd)
 		.on('dragenter', {'plugin': plugin}, plugin.onDragEnter)
 		.on('dragover', {'plugin': plugin}, plugin.onDragOver)
-		.on('dragleave', {'plugin': plugin}, plugin.onDragLeave);
-		
+		.on('dragleave', {'plugin': plugin}, plugin.onDragLeave)
+		.on('keydown', {'plugin': plugin}, plugin.onKeyDown)//11
+		;
+
+		 
 		
 	};
 	
@@ -127,9 +159,70 @@ var pluginName = "ik_sortable",
 		
 		plugin.items.each( function(i, el) {
 			var $me = $(el);
+		    
+			//12 - 
+			$me.attr({
+		        'aria-label': $me.text() + ' ' + (i + 1) + ' of ' + plugin.items.length + ' movable'
+		    });
+			
 		});
 		
 	}
+	
+	//13 - Keyboard inputs
+	
+	Plugin.prototype.onKeyDown = function (event) {
+		 
+        var plugin, $me, currIndex, nextIndex;
+       
+        plugin = event.data.plugin;
+        $me = $(event.currentTarget);
+        currentIndex = plugin.items.index(event.currentTarget);
+           
+        switch (event.keyCode) {
+           
+            case ik_utils.keys.down:
+               
+                plugin.items.attr({'tabindex': -1});
+               
+                if(currentIndex < plugin.items.length - 1) {
+                    if(event.ctrlKey || event.metaKey) { // move item down
+                        $me.insertAfter( $me.next() );
+                        $me.attr({'tabindex': 0}).focus();
+                        plugin.resetNumbering(plugin);
+                    } else { // move focus to the next item
+                        $me.next().attr({'tabindex': 0}).focus();
+                    }
+                }
+               
+                break;
+           
+            case ik_utils.keys.up:
+               
+                plugin.items.attr({'tabindex': -1});
+               
+                if(currentIndex > 0) {
+                    if(event.ctrlKey || event.metaKey) { // move item up
+                        $me.insertBefore( $me.prev() );
+                        $me.attr({'tabindex': 0}).focus();
+                        plugin.resetNumbering(plugin);
+                    } else { // move focus to the previous item
+                        $me.prev().attr({'tabindex': 0}).focus();
+                    }
+                }
+               
+                break;
+           
+        }
+       
+	};
+	
+	
+	
+	
+	
+	
+	
 
 	$.fn[pluginName] = function ( options ) {
 		
